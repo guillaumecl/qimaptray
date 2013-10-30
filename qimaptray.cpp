@@ -2,6 +2,20 @@
 
 #include "imap.h"
 
+#include <signal.h>
+
+
+imappp::imap *volatile conn = nullptr;
+
+
+static void logout(int)
+{
+	if (conn)
+	{
+		conn->logout();
+	}
+}
+
 int main(int argc, char **argv)
 {
 	if (argc < 3)
@@ -10,28 +24,25 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
+	signal(SIGINT, logout);
+
 	try
 	{
-		char buffer[2048];
-		imappp::imap i("mail.gandi.net");
+		imappp::imap i("mail.gandi.net", true);
+		conn = &i;
 
 		i.login(argv[1], argv[2]);
 
-		i.send_raw("SELECT INBOX");
-		i.receive(buffer, sizeof(buffer));
-		printf("%s\n", buffer);
+		i.select("INBOX");
 
-		i.send_raw("IDLE");
-
-
-		int len;
+		i.idle();
 
 		do
 		{
-			len = i.receive(buffer, sizeof(buffer));
-			buffer[len] = 0;
-			printf("%s\n", buffer);
-		} while (len > 0);
+		}
+		while (i.wait());
+
+		conn = nullptr;
 	}
 	catch (const char *str)
 	{

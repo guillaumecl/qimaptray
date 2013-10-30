@@ -9,14 +9,21 @@
 #include <fcntl.h>
 
 #include <openssl/err.h>
+#include <stdarg.h>
+#include <string.h>
+
+#include "status.h"
+
+#define TAG "%010d "
 
 using namespace imappp;
 
-imap::imap(const char *host)
+imap::imap(const char *host, bool verbose) :
+	tag_(0),
+	verbose_(verbose),
+	idle_(false)
 {
 	/* TODO handle exceptions during the setup (destructor won't be called) */
-	memset(&id, '0', sizeof(id));
-
 	BIO *sbio;
 	int port = 993;
 
@@ -25,7 +32,9 @@ imap::imap(const char *host)
 	SSL_load_error_strings();
 
 	ctx_ = SSL_CTX_new(SSLv23_method());
-
+#ifdef SSL_MODE_RELEASE_BUFFERS
+	SSL_CTX_set_mode(ctx_, SSL_MODE_RELEASE_BUFFERS);
+#endif
 	tcp_connect(host, port);
 
 	connection_ = SSL_new(ctx_);
@@ -41,7 +50,6 @@ imap::imap(const char *host)
 	 * Receive the initial dialog from the server.
 	 */
 	receive();
-	printf("%s\n", receive_buffer);
 }
 
 imap::~imap()
@@ -55,11 +63,21 @@ imap::~imap()
 		ERR_print_errors_fp(stderr);
 		// don't call ssl_error because we don't want to throw anything here.
 	}
-	SSL_free(connection_);
+	//SSL_free(connection_);
 	SSL_CTX_free(ctx_);
 	close(sock_);
 }
 
+void imap::logout()
+{
+	if (idle_)
+	{
+		stop_idle();
+	}
+
+	sendf("LOGOUT");
+	receive();
+}
 
 void imap::tcp_connect(const char *host, int port)
 {
@@ -88,33 +106,47 @@ void imap::tcp_connect(const char *host, int port)
 	}
 }
 
-void imap::send_raw(const char *buffer)
+int imap::try_sendf(int length, const char *format, va_list ap)
 {
-	send_id();
+	char buffer[length];
 
-	SSL_write(connection_, buffer, strlen(buffer));
+	int l = sprintf(buffer, TAG, tag_);
 
-	SSL_write(connection_, "\n", 1);
+	int len = vsnprintf(buffer + l, sizeof(buffer) - l, format, ap);
+	len += l;
+	if (len + 1 > length)
+	{
+		return len + 2;
+	}
+	else
+	{
+		buffer[len] = '\n';
+		buffer[len+1] = 0;
+		if (verbose_)
+		{
+			printf("%s", buffer);
+		}
+		SSL_write(connection_, buffer, len+1);
+		return 0;
+	}
 }
 
-int imap::receive(char *buffer, int buffsize)
+void imap::sendf(const char *format, ...)
 {
-	int r = SSL_read(connection_, buffer, buffsize);
-	switch(SSL_get_error(connection_, r))
+	va_list ap;
+	unsigned int len;
+
+	va_start(ap, format);
+
+	len = try_sendf(1024, format, ap);
+	if (len > 0)
 	{
-	case SSL_ERROR_NONE:
-		break;
-	case SSL_ERROR_ZERO_RETURN:
-		r = 0;
-		break;
-	case SSL_ERROR_SYSCALL:
-		ssl_error("SSL Error: Premature close");
-		break;
-	default:
-		ssl_error("SSL read problem");
+		fprintf(stderr, "warning: send buffer too small: needed:%d.\n", len);
+		try_sendf(len, format, ap);
 	}
-	buffer[r] = 0;
-	return r;
+	tag_++;
+
+	va_end(ap);
 }
 
 void imap::error(const char *string)
@@ -130,45 +162,73 @@ void imap::ssl_error(const char* string)
 	throw string;
 }
 
-void imap::send_id()
-{
-	SSL_write(connection_, id, sizeof(id));
-	SSL_write(connection_, " ", 1);
-
-	int i = sizeof(id) - 1;
-	while (i >= 0)
-	{
-		id[i]++;
-		if (id[i] < '9')
-		{
-			break;
-		}
-		else
-		{
-			id[i] = '0';
-		}
-		i--;
-	}
-}
-
 int imap::receive()
 {
-	return receive(receive_buffer, sizeof(receive_buffer));
+	char buffer[2048];
+
+	int ret = SSL_read(connection_, buffer, sizeof(buffer));
+	switch(SSL_get_error(connection_, ret))
+	{
+	case SSL_ERROR_NONE:
+		break;
+	case SSL_ERROR_ZERO_RETURN:
+		ret = 0;
+		break;
+	case SSL_ERROR_SYSCALL:
+		ssl_error("SSL Error: Premature close");
+		break;
+	default:
+		ssl_error("SSL read problem");
+	}
+	buffer[ret] = 0;
+	if (verbose_)
+	{
+		printf("%s", buffer);
+	}
+
+	status::parse(
+		buffer,
+		[] (const status& s)
+		{
+			printf("%s\n", s.message().c_str());
+		});
+
+	return ret;
 }
 
-void imap::login(const char *login, const char *password)
+bool imap::login(const char *login, const char *password)
 {
-	send_id();
-
-	SSL_write(connection_, "LOGIN ", 6);
-
-	SSL_write(connection_, login, strlen(login));
-	SSL_write(connection_, " ", 1);
-
-	SSL_write(connection_, password, strlen(password));
-	SSL_write(connection_, "\n", 1);
+	sendf("LOGIN %s %s", login, password);
 
 	receive();
 
-	printf("%s\n", receive_buffer);
+	return true;
+}
+
+void imap::select(const char *mailbox)
+{
+	sendf("SELECT %s", mailbox);
+	receive();
+}
+
+void imap::idle()
+{
+	sendf("IDLE");
+
+	idle_ = true;
+	receive();
+}
+
+void imap::stop_idle()
+{
+	SSL_write(connection_, "DONE\n", 5);
+	receive();
+
+	idle_ = false;
+}
+
+
+bool imap::wait()
+{
+	return receive() > 0;
 }

@@ -8,6 +8,7 @@ find_package(OpenSSL REQUIRED)
 
 add_executable(qimaptray
   imap.cpp
+  status.cpp
   qimaptray.cpp
 )
 

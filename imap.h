@@ -17,7 +17,7 @@ public:
 	 * Instantiate an IMAP SSL connection to host.
 	 * @param host the host to connect to.
 	 */
-	imap(const char* host);
+	imap(const char* host, bool verbose=false);
 
 	/**
 	 * Prevent copy.
@@ -49,22 +49,36 @@ public:
 	 * Log on the server.
 	 * @param login User to log into
 	 * @param password Password to use
+	 * @return true in case of success
 	 */
-	void login(const char *login, const char *password);
+	bool login(const char *login, const char *password);
 
 	/**
-	 * Send a raw command to the server.
-	 * @param buffer string to send.
+	 * Selects a mailbox for use with subsequent commands.
 	 */
-	void send_raw(const char *buffer);
+	void select(const char *mailbox);
 
 	/**
-	 * Receive the incoming buffer.
-	 * @param buffer reception buffer
-	 * @param buffsize sisze of the reception buffer
-	 * @return size in bytes of the received data
+	 * Go into idle mode.
 	 */
-	int receive(char *buffer, int buffsize);
+	void idle();
+
+	/**
+	 * Stop idle mode.
+	 */
+	void stop_idle();
+
+	/**
+	 * Tells the server the connection will be closed soon.
+	 */
+	void logout();
+
+	/**
+	 * Wait for more data. Useful when idling.
+	 *
+	 * @return false if the connection is closed.
+	 */
+	bool wait();
 
 private:
 	/**
@@ -87,13 +101,24 @@ private:
 	void ssl_error(const char* string);
 
 	/**
-	 * Send the id of the current connection.
+	 * Try to send the data in format/ap (like sprintf) with len bytes.
+	 *
+	 * If success, return 0. If failed, return the needed number of bytes.
 	 */
-	void send_id();
+	int try_sendf(int len, const char *format, va_list ap)
+		__attribute__((format(printf, 3, 0)));
 
 	/**
-	 * Receive data in the internal buffer.
-	 * @return length of the received data.
+	 * Printf based send to server.
+	 */
+	void sendf(const char *format, ...)
+		__attribute__((format(printf, 2, 3)));
+
+	/**
+	 * Receive the incoming buffer.
+	 * @param buffer reception buffer
+	 * @param buffsize sisze of the reception buffer
+	 * @return size in bytes of the received data
 	 */
 	int receive();
 
@@ -115,12 +140,17 @@ private:
 	/**
 	 * Identifier of the next command to send.
 	 */
-	char id[10];
+	unsigned int tag_;
 
 	/**
-	 * Reception buffer.
+	 * If true, print all text-based comminucation to stdout.
 	 */
-	char receive_buffer[4096];
+	bool verbose_;
+
+	/**
+	 * True if we currently are in idle mode.
+	 */
+	bool idle_;
 };
 
 }
