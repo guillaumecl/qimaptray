@@ -22,9 +22,9 @@ static void logout(int)
 
 int main(int argc, char **argv)
 {
-	if (argc < 3)
+	if (argc < 4)
 	{
-		fprintf(stderr, "usage : %s user pass\n", argv[0]);
+		fprintf(stderr, "usage : %s server user pass\n", argv[0]);
 		return 1;
 	}
 
@@ -32,10 +32,10 @@ int main(int argc, char **argv)
 
 	try
 	{
-		imappp::imap i("mail.gandi.net", true);
+		imappp::imap i(argv[1], true);
 		conn = &i;
 
-		if (i.login(argv[1], argv[2]))
+		if (i.login(argv[2], argv[3]))
 		{
 			i.select("INBOX");
 

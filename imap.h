@@ -152,6 +152,11 @@ private:
 	 * True if we currently are in idle mode.
 	 */
 	bool idle_;
+
+	/**
+	 * True if we're currently logging out.
+	 */
+	bool logout_;
 };
 
 }

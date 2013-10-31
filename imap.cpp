@@ -21,7 +21,8 @@ using namespace imappp;
 imap::imap(const char *host, bool verbose) :
 	tag_(0),
 	verbose_(verbose),
-	idle_(false)
+	idle_(false),
+	logout_(false)
 {
 	/* TODO handle exceptions during the setup (destructor won't be called) */
 	BIO *sbio;
@@ -57,13 +58,7 @@ imap::~imap()
 	/* TODO clean this. Ensure this works even if the connection is already
 	   closed, etc.
 	*/
-	if (SSL_shutdown(connection_) != 1)
-	{
-		fprintf(stderr, "SSL Shutdown failed\n");
-		ERR_print_errors_fp(stderr);
-		// don't call ssl_error because we don't want to throw anything here.
-	}
-	//SSL_free(connection_);
+	SSL_shutdown(connection_);
 	SSL_CTX_free(ctx_);
 	close(sock_);
 }
@@ -74,6 +69,8 @@ void imap::logout()
 	{
 		stop_idle();
 	}
+
+	logout_ = true;
 
 	sendf("LOGOUT");
 	receive();
@@ -114,19 +111,20 @@ int imap::try_sendf(int length, const char *format, va_list ap)
 
 	int len = vsnprintf(buffer + l, sizeof(buffer) - l, format, ap);
 	len += l;
-	if (len + 1 > length)
+	if (len + 2 > length)
 	{
-		return len + 2;
+		return len + 3;
 	}
 	else
 	{
-		buffer[len] = '\n';
-		buffer[len+1] = 0;
+		buffer[len] = '\r';
+		buffer[len+1] = '\n';
+		buffer[len+2] = 0;
 		if (verbose_)
 		{
 			printf("%s", buffer);
 		}
-		SSL_write(connection_, buffer, len+1);
+		SSL_write(connection_, buffer, len+2);
 		return 0;
 	}
 }
@@ -157,9 +155,16 @@ void imap::error(const char *string)
 
 void imap::ssl_error(const char* string)
 {
-	fprintf(stderr,"%s\n",string);
-	ERR_print_errors_fp(stderr);
-	throw string;
+	if (not logout_)
+	{
+		/*
+		 * During logout, some servers disconnect early. We really don't want
+		 * to throw since we're probably in the destructor.
+		 */
+		fprintf(stderr,"%s\n",string);
+		ERR_print_errors_fp(stderr);
+		throw string;
+	}
 }
 
 int imap::receive(std::function<void(const status&)> iter)
@@ -223,7 +228,7 @@ void imap::idle()
 
 void imap::stop_idle()
 {
-	SSL_write(connection_, "DONE\n", 5);
+	SSL_write(connection_, "DONE\r\n", 6);
 	receive();
 
 	idle_ = false;
