@@ -162,7 +162,7 @@ void imap::ssl_error(const char* string)
 	throw string;
 }
 
-int imap::receive()
+int imap::receive(std::function<void(const status&)> iter)
 {
 	char buffer[2048];
 
@@ -186,23 +186,25 @@ int imap::receive()
 		printf("%s", buffer);
 	}
 
-	status::parse(
-		buffer,
-		[] (const status& s)
-		{
-			printf("%s\n", s.message().c_str());
-		});
+	status::parse(buffer, iter);
 
 	return ret;
 }
 
 bool imap::login(const char *login, const char *password)
 {
+	bool success = true;
 	sendf("LOGIN %s %s", login, password);
 
-	receive();
+	receive([&success] (const status& s)
+			{
+				if (s.response() != ok)
+				{
+					success = false;
+				}
+			});
 
-	return true;
+	return success;
 }
 
 void imap::select(const char *mailbox)

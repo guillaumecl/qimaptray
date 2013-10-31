@@ -2,10 +2,12 @@
 #define IMAP_H
 
 #include <openssl/ssl.h>
+#include <functional>
 
 namespace imappp
 {
 
+class status;
 
 /**
  * An imap connection to a server, using SSL.
@@ -116,11 +118,10 @@ private:
 
 	/**
 	 * Receive the incoming buffer.
-	 * @param buffer reception buffer
-	 * @param buffsize sisze of the reception buffer
+	 * @param func function to call for each received message
 	 * @return size in bytes of the received data
 	 */
-	int receive();
+	int receive(std::function<void(const status&)> func = nullptr);
 
 	/**
 	 * SSL context.

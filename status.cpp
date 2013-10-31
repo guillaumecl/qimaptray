@@ -74,7 +74,10 @@ void status::parse(const char *p, std::function<void(const status&)> visitor)
 		}
 
 		current.message_ = std::string(message, p - message);
-		visitor(current);
+		if (visitor)
+		{
+			visitor(current);
+		}
 
 		while (*p and (*p == '\n' or *p == '\r' or *p == ' '))
 		{

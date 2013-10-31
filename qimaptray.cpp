@@ -14,6 +14,10 @@ static void logout(int)
 	{
 		conn->logout();
 	}
+	else
+	{
+		abort();
+	}
 }
 
 int main(int argc, char **argv)
@@ -31,16 +35,17 @@ int main(int argc, char **argv)
 		imappp::imap i("mail.gandi.net", true);
 		conn = &i;
 
-		i.login(argv[1], argv[2]);
-
-		i.select("INBOX");
-
-		i.idle();
-
-		do
+		if (i.login(argv[1], argv[2]))
 		{
+			i.select("INBOX");
+
+			i.idle();
+
+			do
+			{
+			}
+			while (i.wait());
 		}
-		while (i.wait());
 
 		conn = nullptr;
 	}
