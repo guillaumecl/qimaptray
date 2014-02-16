@@ -117,13 +117,13 @@ int imap::try_sendf(int length, const char *format, va_list ap)
 	}
 	else
 	{
+		if (verbose_)
+		{
+			printf("%s\n", buffer);
+		}
 		buffer[len] = '\r';
 		buffer[len+1] = '\n';
 		buffer[len+2] = 0;
-		if (verbose_)
-		{
-			printf("%s", buffer);
-		}
 		SSL_write(connection_, buffer, len+2);
 		return 0;
 	}
