@@ -5,7 +5,10 @@
 using namespace imappp;
 
 status::status() :
-	response_(ok)
+	tag_(0),
+	num_(0),
+	response_(untagged),
+	command_(unknown)
 {
 }
 
@@ -57,7 +60,7 @@ void status::parse(const char *p, std::function<void(const status&)> visitor)
 		}
 		else
 		{
-			current.response_ = ok;
+			current.response_ = untagged;
 			p = err;
 		}
 
@@ -66,14 +69,67 @@ void status::parse(const char *p, std::function<void(const status&)> visitor)
 			p++;
 		}
 
-		const char *message = p;
-
-		while(*p and *p != '\n' and *p != '\r')
+		if (current.response_ == untagged and sscanf(p, "%u%n", &current.num_, &read))
 		{
-			p++;
-		}
+			p += read+1;
+			const char *command = p;
 
-		current.message_ = std::string(message, p - message);
+			while(*p and *p != '\n' and *p != '\r')
+			{
+				p++;
+			}
+
+			int len = p - command;
+
+			if (strncmp(command, "EXPUNGE", len) == 0)
+			{
+				current.command_ = expunge;
+			}
+			else if (strncmp(command, "RECENT", len) == 0)
+			{
+				current.command_ = recent;
+			}
+			else if (strncmp(command, "EXISTS", len) == 0)
+			{
+				current.command_ = exists;
+			}
+			else if (strncmp(command, "FETCH", len) == 0)
+			{
+				current.command_ = fetch;
+			}
+			else
+			{
+				current.command_ = unknown;
+				current.message_ = std::string(command, p - command);
+			}
+		}
+		else if (strncmp(p, "SEARCH", 6) == 0)
+		{
+			unsigned int id;
+			p += 7;
+			current.num_ = 0;
+			current.command_ = search;
+			while (*p and *p != '\r' and *p != '\n' and  sscanf(p, "%u%n", &id, &read))
+			{
+				current.num_++;
+				p += read;
+				while(*p == ' ')
+				{
+					p++;
+				}
+			}
+		}
+		else
+		{
+			const char *message = p;
+
+			while(*p and *p != '\n' and *p != '\r')
+			{
+				p++;
+			}
+
+			current.message_ = std::string(message, p - message);
+		}
 		if (visitor)
 		{
 			visitor(current);

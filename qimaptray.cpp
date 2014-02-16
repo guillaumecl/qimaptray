@@ -34,6 +34,12 @@ int main(int argc, char **argv)
 	{
 		imappp::imap i(argv[1], true);
 
+		i.set_message_callback(
+			[](unsigned int count)
+			{
+				printf("Currently we have %u unread messages.\n", count);
+			});
+
 		conn = &i;
 
 		if (i.login(argv[2], argv[3]))

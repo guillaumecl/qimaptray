@@ -17,6 +17,8 @@ class imap
 public:
 	typedef std::function<bool(const status&)> status_callback;
 
+	typedef std::function<void(unsigned int)> receive_message_callback;
+
 	/**
 	 * Instantiate an IMAP SSL connection to host.
 	 * @param host the host to connect to.
@@ -84,6 +86,16 @@ public:
 	 */
 	bool wait();
 
+	/**
+	 * Return the number of unread messages.
+	 */
+	unsigned int unread_count() const;
+
+	/**
+	 * Sets the method to call when receiving the message read count.
+	 */
+	void set_message_callback(receive_message_callback callback);
+
 private:
 	/**
 	 * Connects to the specified host and port.
@@ -131,6 +143,11 @@ private:
 	bool default_callback(const status& s);
 
 	/**
+	 * Pre process messages.
+	 */
+	void pre_process(const status& s);
+
+	/**
 	 * SSL context.
 	 */
 	SSL_CTX *ctx_;
@@ -164,6 +181,32 @@ private:
 	 * True if we're currently logging out.
 	 */
 	bool logout_;
+
+
+	/**
+	 * Number of recent messages.
+	 */
+	unsigned int recent_count_;
+
+	/**
+	 * Number of messages in the mailbox.
+	 */
+	unsigned int message_count_;
+
+	/**
+	 * Number of unread messages.
+	 */
+	unsigned int unread_count_;
+
+	/**
+	 * If true, we are currently not sure of the count of unread messages.
+	 */
+	bool need_refresh_;
+
+	/**
+	 * If set, this is called when the number of messages change.
+	 */
+	receive_message_callback message_callback_;
 };
 
 }

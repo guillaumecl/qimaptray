@@ -22,7 +22,8 @@ imap::imap(const char *host, bool verbose) :
 	tag_(0),
 	verbose_(verbose),
 	idle_(false),
-	logout_(false)
+	logout_(false),
+	need_refresh_(false)
 {
 	/* TODO handle exceptions during the setup (destructor won't be called) */
 	BIO *sbio;
@@ -195,11 +196,28 @@ int imap::receive(status_callback callback)
 		buffer,
 		[this, &callback] (const status& s)
 		{
+			pre_process(s);
 			if (callback and not callback(s))
 			{
 				default_callback(s);
 			}
 		});
+
+	if (need_refresh_)
+	{
+		need_refresh_ = false;
+		bool was_idle = idle_;
+		if (was_idle)
+		{
+			stop_idle();
+		}
+		sendf("SEARCH UNSEEN");
+		if (was_idle)
+		{
+			sendf("IDLE");
+			idle_ = true;
+		}
+	}
 
 	return ret;
 }
@@ -217,7 +235,6 @@ bool imap::login(const char *login, const char *password)
 				}
 				return true;
 			});
-
 	return success;
 }
 
@@ -252,4 +269,46 @@ void imap::stop_idle()
 bool imap::wait()
 {
 	return receive() > 0;
+}
+
+void imap::pre_process(const status& s)
+{
+	switch(s.command())
+	{
+	case exists:
+		message_count_ = s.num();
+		need_refresh_ = true;
+		break;
+	case recent:
+		recent_count_ = s.num();
+		break;
+	case expunge:
+		message_count_--;
+		need_refresh_ = true;
+		break;
+	case fetch:
+		need_refresh_ = true;
+		break;
+	case search:
+		unread_count_ = s.num();
+		if (message_callback_)
+		{
+			message_callback_(s.num());
+		}
+		break;
+	case unknown:
+		// Nothing to do if this is not a command to handle.
+		break;
+	}
+}
+
+
+unsigned int imap::unread_count() const
+{
+	return unread_count_;
+}
+
+void imap::set_message_callback(receive_message_callback callback)
+{
+	message_callback_ = callback;
 }

@@ -6,9 +6,20 @@ namespace imappp
 
 enum response
 {
+	untagged,
 	ok,
 	no,
 	bad,
+};
+
+enum command
+{
+	unknown,
+	expunge,
+	exists,
+	recent,
+	fetch,
+	search,
 };
 
 class status
@@ -24,6 +35,8 @@ public:
 
 	enum response response() const;
 
+	enum command command() const;
+
 	bool tagged() const;
 
 	static void parse(const char *buffer, std::function<void(const status&)> visitor);
@@ -36,6 +49,8 @@ private:
 	std::string message_;
 
 	enum response response_;
+
+	enum command command_;
 };
 
 inline unsigned int status::tag() const
@@ -56,6 +71,16 @@ inline const std::string& status::message() const
 inline enum response status::response() const
 {
 	return response_;
+}
+
+inline enum command status::command() const
+{
+	return command_;
+}
+
+inline unsigned int status::num() const
+{
+	return num_;
 }
 
 }
