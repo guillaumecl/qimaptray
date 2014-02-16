@@ -74,7 +74,7 @@ void status::parse(const char *p, std::function<void(const status&)> visitor)
 			p += read+1;
 			const char *command = p;
 
-			while(*p and *p != '\n' and *p != '\r')
+			while(*p and *p != '\n' and *p != '\r' and *p != ' ')
 			{
 				p++;
 			}
