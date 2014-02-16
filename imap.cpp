@@ -167,7 +167,7 @@ void imap::ssl_error(const char* string)
 	}
 }
 
-int imap::receive(std::function<void(const status&)> iter)
+int imap::receive(status_callback callback)
 {
 	char buffer[2048];
 
@@ -191,7 +191,15 @@ int imap::receive(std::function<void(const status&)> iter)
 		printf("%s", buffer);
 	}
 
-	status::parse(buffer, iter);
+	status::parse(
+		buffer,
+		[this, &callback] (const status& s)
+		{
+			if (callback and not callback(s))
+			{
+				default_callback(s);
+			}
+		});
 
 	return ret;
 }
@@ -207,9 +215,15 @@ bool imap::login(const char *login, const char *password)
 				{
 					success = false;
 				}
+				return true;
 			});
 
 	return success;
+}
+
+bool imap::default_callback(const status& /*s*/)
+{
+	return true;
 }
 
 void imap::select(const char *mailbox)

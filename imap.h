@@ -15,6 +15,8 @@ class status;
 class imap
 {
 public:
+	typedef std::function<bool(const status&)> status_callback;
+
 	/**
 	 * Instantiate an IMAP SSL connection to host.
 	 * @param host the host to connect to.
@@ -121,7 +123,12 @@ private:
 	 * @param func function to call for each received message
 	 * @return size in bytes of the received data
 	 */
-	int receive(std::function<void(const status&)> func = nullptr);
+	int receive(status_callback func = nullptr);
+
+	/**
+	 * Default actions for the specified status.
+	 */
+	bool default_callback(const status& s);
 
 	/**
 	 * SSL context.
