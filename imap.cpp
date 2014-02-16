@@ -86,7 +86,7 @@ void imap::tcp_connect(const char *host, int port)
 		error("Couldn't resolve host");
 	}
 
-	memset(&addr,0,sizeof(addr));
+	memset(&addr, 0, sizeof(addr));
 
 	addr.sin_addr = *(struct in_addr*) hp->h_addr_list[0];
 	addr.sin_family = AF_INET;

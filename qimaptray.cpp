@@ -33,6 +33,7 @@ int main(int argc, char **argv)
 	try
 	{
 		imappp::imap i(argv[1], true);
+
 		conn = &i;
 
 		if (i.login(argv[2], argv[3]))
