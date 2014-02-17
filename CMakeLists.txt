@@ -12,6 +12,8 @@ add_definitions(${QT_DEFINITIONS})
 
 
 QT4_WRAP_CPP(QIMAPTRAY_HEADERS_MOC
+  connection.h
+  tray.h
 )
 
 QT4_WRAP_UI(QIMAPTRAY_FORMS_HEADERS
@@ -19,6 +21,7 @@ QT4_WRAP_UI(QIMAPTRAY_FORMS_HEADERS
 )
 
 QT4_ADD_RESOURCES(QIMAPTRAY_RESOURCES
+  qimaptray.qrc
 )
 
 
@@ -30,6 +33,8 @@ add_executable(qimaptray
   imap.cpp
   status.cpp
   qimaptray.cpp
+  connection.cpp
+  tray.cpp
   ${QIMAPTRAY_HEADERS_MOC}
   ${QIMAPTRAY_FORMS_HEADERS}
   ${QIMAPTRAY_RESOURCES}

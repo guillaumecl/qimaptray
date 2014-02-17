@@ -92,6 +92,11 @@ public:
 	unsigned int unread_count() const;
 
 	/**
+	 * Return the number of messages.
+	 */
+	unsigned int message_count() const;
+
+	/**
 	 * Sets the method to call when receiving the message read count.
 	 */
 	void set_message_callback(receive_message_callback callback);

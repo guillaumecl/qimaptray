@@ -308,6 +308,11 @@ unsigned int imap::unread_count() const
 	return unread_count_;
 }
 
+unsigned int imap::message_count() const
+{
+	return message_count_;
+}
+
 void imap::set_message_callback(receive_message_callback callback)
 {
 	message_callback_ = callback;

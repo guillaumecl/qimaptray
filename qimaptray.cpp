@@ -1,71 +1,36 @@
 #include <stdio.h>
 
-#include "imap.h"
+#include "connection.h"
+#include "tray.h"
 
-#include <signal.h>
-
-
-imappp::imap *volatile conn = nullptr;
-
-
-static void logout(int)
-{
-	if (conn)
-	{
-		conn->logout();
-	}
-	else
-	{
-		abort();
-	}
-}
-
-
-void wait_messages(const char *host, const char *login, const char *password, imappp::imap::receive_message_callback callback)
-{
-	try
-	{
-		imappp::imap i(host, true);
-
-		i.set_message_callback(callback);
-
-		conn = &i;
-
-		if (i.login(login, password))
-		{
-			i.select("INBOX");
-
-			i.idle();
-
-			do
-			{
-			}
-			while (i.wait());
-		}
-
-		conn = nullptr;
-	}
-	catch (const char *str)
-	{
-		fprintf(stderr, "Error: %s\n", str);
-	}
-}
+#include <QApplication>
+#include <QThread>
 
 int main(int argc, char **argv)
 {
+	QApplication app(argc, argv);
+
 	if (argc < 4)
 	{
 		fprintf(stderr, "usage : %s server user pass\n", argv[0]);
 		return 1;
 	}
 
-	signal(SIGINT, logout);
+	QThread thread;
 
-	wait_messages(argv[1], argv[2], argv[3],
-		[](unsigned int count)
-		{
-			printf("Currently we have %u unread messages.\n", count);
-		});
+	tray t;
+	connection c(argv[1], argv[2], argv[3]);
 
-	return 0;
+	c.moveToThread(&thread);
+	QObject::connect(&c, SIGNAL(new_unread_count(unsigned int, unsigned int)),
+					 &t, SLOT(unread_messages(unsigned int, unsigned int)));
+
+	thread.start();
+
+	int r = app.exec();
+
+	// thread.quit();
+	// thread.wait();
+
+	return r;
 }
