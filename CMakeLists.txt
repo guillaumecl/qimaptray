@@ -10,7 +10,6 @@ find_package(Qt4 REQUIRED)
 include(${QT_USE_FILE})
 add_definitions(${QT_DEFINITIONS})
 
-
 QT4_WRAP_CPP(QIMAPTRAY_HEADERS_MOC
   connection.h
   tray.h
@@ -35,10 +34,11 @@ add_executable(qimaptray
   qimaptray.cpp
   connection.cpp
   tray.cpp
+  webcam.cpp
   ${QIMAPTRAY_HEADERS_MOC}
   ${QIMAPTRAY_FORMS_HEADERS}
   ${QIMAPTRAY_RESOURCES}
   ${QIMAPTRAY_TRANSLATIONS}
 )
 
-target_link_libraries(qimaptray ssl crypto ${QT_LIBRARIES})
+target_link_libraries(qimaptray ssl crypto v4l2 ${QT_LIBRARIES})

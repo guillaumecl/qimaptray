@@ -1,6 +1,5 @@
 #include "tray.h"
 
-
 #include <QSystemTrayIcon>
 #include <QPainter>
 
@@ -36,12 +35,14 @@ void tray::unread_messages(unsigned int unread, unsigned int /*total*/)
 			painter.drawText(pixmap.rect(),
 							 Qt::AlignCenter,
 							 QString::number(unread));
+			webcam_.light();
 		}
 		icon_->setIcon(QIcon(pixmap));
 	}
 	else
 	{
 		icon_->setIcon(base_icon_);
+		webcam_.unlight();
 	}
 	known_unread_ = unread;
 }

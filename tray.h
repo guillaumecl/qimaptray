@@ -3,6 +3,7 @@
 
 #include <QObject>
 #include <QIcon>
+#include "webcam.h"
 
 class QSystemTrayIcon;
 
@@ -20,6 +21,8 @@ private:
 	QIcon base_icon_;
 
 	unsigned int known_unread_;
+
+	webcam webcam_;
 };
 
 #endif
