@@ -15,13 +15,9 @@ tray::tray() :
 
 void tray::unread_messages(unsigned int unread, unsigned int /*total*/)
 {
-	if (unread > known_unread_)
-	{
-		icon_->showMessage("Mail", "Incoming mail");
-	}
-
 	if (unread > 0)
 	{
+		webcam_.light();
 		QPixmap pixmap = base_icon_.pixmap(QSize(16, 16));
 		{
 			QPainter painter(&pixmap);
@@ -35,14 +31,13 @@ void tray::unread_messages(unsigned int unread, unsigned int /*total*/)
 			painter.drawText(pixmap.rect(),
 							 Qt::AlignCenter,
 							 QString::number(unread));
-			webcam_.light();
 		}
 		icon_->setIcon(QIcon(pixmap));
 	}
 	else
 	{
-		icon_->setIcon(base_icon_);
 		webcam_.unlight();
+		icon_->setIcon(base_icon_);
 	}
 	known_unread_ = unread;
 }
