@@ -1,0 +1,3 @@
+[submodule "webcam_led"]
+	path = webcam_led
+	url = git@github.com:guillaumecl/webcam_led
