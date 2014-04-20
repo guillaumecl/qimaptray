@@ -103,13 +103,6 @@ public:
 
 private:
 	/**
-	 * Connects to the specified host and port.
-	 * @param host the hostname (either an address or a host to resolve)
-	 * @param port the port to create the connection on.
-	 */
-	void tcp_connect(const char *host, int port);
-
-	/**
 	 * Logs errors.
 	 * @param string the error
 	 */
@@ -160,12 +153,7 @@ private:
 	/**
 	 * SSL connection.
 	 */
-	SSL *connection_;
-
-	/**
-	 * Underlying socket fd (don't recv on that, but maybe can be used for select).
-	 */
-	int sock_;
+	BIO *connection_;
 
 	/**
 	 * Identifier of the next command to send.

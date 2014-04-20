@@ -94,9 +94,8 @@ imap::~imap()
 	/* TODO clean this. Ensure this works even if the connection is already
 	   closed, etc.
 	*/
-	SSL_shutdown(connection_);
+	BIO_free_all(connection_);
 	SSL_CTX_free(ctx_);
-	close(sock_);
 }
 
 void imap::logout()
@@ -112,36 +111,10 @@ void imap::logout()
 	receive();
 }
 
-void imap::tcp_connect(const char *host, int port)
-{
-	struct hostent *hp;
-	struct sockaddr_in addr;
-
-	if(!(hp=gethostbyname(host)))
-	{
-		error("Couldn't resolve host");
-	}
-
-	memset(&addr, 0, sizeof(addr));
-
-	addr.sin_addr = *(struct in_addr*) hp->h_addr_list[0];
-	addr.sin_family = AF_INET;
-	addr.sin_port = htons(port);
-
-	if((sock_ = socket(AF_INET,SOCK_STREAM, IPPROTO_TCP))<0)
-	{
-		error("Couldn't create socket");
-	}
-
-	if(connect(sock_, (struct sockaddr *)&addr, sizeof(addr)) < 0)
-	{
-		error("Couldn't connect socket");
-	}
-}
-
 int imap::try_sendf(int length, const char *format, va_list ap)
 {
 	char buffer[length];
+	int ret;
 
 	int l = sprintf(buffer, TAG, tag_);
 
@@ -160,7 +133,10 @@ int imap::try_sendf(int length, const char *format, va_list ap)
 		buffer[len] = '\r';
 		buffer[len+1] = '\n';
 		buffer[len+2] = 0;
-		SSL_write(connection_, buffer, len+2);
+		do
+		{
+			ret = BIO_write(connection_, buffer, len+2);
+		} while (ret < len+2 and BIO_should_retry(connection_));
 		return 0;
 	}
 }
@@ -207,20 +183,44 @@ int imap::receive(status_callback callback)
 {
 	char buffer[2048];
 
-	int ret = SSL_read(connection_, buffer, sizeof(buffer));
-	switch(SSL_get_error(connection_, ret))
+	int ret;
+
+	struct pollfd p;
+
+	while(true)
 	{
-	case SSL_ERROR_NONE:
-		break;
-	case SSL_ERROR_ZERO_RETURN:
-		ret = 0;
-		break;
-	case SSL_ERROR_SYSCALL:
-		ssl_error("SSL Error: Premature close");
-		break;
-	default:
-		ssl_error("SSL read problem");
+		BIO_get_fd(connection_, &p.fd);
+		p.events = POLLIN | POLLRDHUP | POLLNVAL;
+		fprintf(stderr, "Polling %d\n", p.fd);
+		ret = poll(&p, 1, 10*60*1000);
+		if (ret == 0)
+		{
+			fprintf(stderr, "Lost connection : %d\n", ret);
+			BIO *bio = BIO_new_ssl_connect(ctx_);
+			int port = BIO_get_conn_int_port(connection_);
+
+			BIO_set_conn_hostname(bio, BIO_get_conn_hostname(connection_));
+			BIO_set_conn_int_port(bio, &port);
+
+			BIO_set_nbio(bio, 1);
+
+			std::swap(bio, connection_);
+			BIO_free_all(bio);
+
+			return ret;
+		}
+		ret = BIO_read(connection_, buffer, sizeof(buffer));
+		if (ret > 0 or not BIO_should_retry(connection_))
+		{
+			break;
+		}
 	}
+
+	if (ret <= 0)
+	{
+		return ret;
+	}
+
 	buffer[ret] = 0;
 	if (verbose_)
 	{
@@ -294,7 +294,7 @@ void imap::idle()
 
 void imap::stop_idle()
 {
-	SSL_write(connection_, "DONE\r\n", 6);
+	BIO_write(connection_, "DONE\r\n", 6);
 	receive();
 
 	idle_ = false;
