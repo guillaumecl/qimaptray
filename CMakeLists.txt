@@ -7,6 +7,9 @@ SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x -Wall -Wextra -Werror")
 find_package(OpenSSL REQUIRED)
 find_package(Qt4 REQUIRED)
 
+include_directories(".")
+link_directories(${CMAKE_SOURCE_DIR}/webcam_led)
+
 include(${QT_USE_FILE})
 add_definitions(${QT_DEFINITIONS})
 
@@ -41,4 +44,4 @@ add_executable(qimaptray
   ${QIMAPTRAY_TRANSLATIONS}
 )
 
-target_link_libraries(qimaptray ssl crypto v4l2 ${QT_LIBRARIES})
+target_link_libraries(qimaptray ssl crypto v4l2 ${QT_LIBRARIES} webcam_led)

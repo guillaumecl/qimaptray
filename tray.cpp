@@ -3,6 +3,9 @@
 #include <QSystemTrayIcon>
 #include <QPainter>
 
+namespace qimaptray
+{
+
 tray::tray() :
 	icon_(new QSystemTrayIcon(this)),
 	base_icon_(":/icons/mail"),
@@ -40,4 +43,6 @@ void tray::unread_messages(unsigned int unread, unsigned int /*total*/)
 		icon_->setIcon(base_icon_);
 	}
 	known_unread_ = unread;
+}
+
 }

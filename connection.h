@@ -5,6 +5,9 @@
 
 #include "imap.h"
 
+namespace qimaptray
+{
+
 class connection: public QObject
 {
 	Q_OBJECT
@@ -24,5 +27,7 @@ private:
 
 	imappp::imap imap_connection;
 };
+
+}
 
 #endif

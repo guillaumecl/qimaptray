@@ -38,8 +38,8 @@ int main(int argc, char **argv)
 
 		QThread thread;
 
-		tray t;
-		connection c(host, user, password);
+		qimaptray::tray t;
+		qimaptray::connection c(host, user, password);
 
 		// don't keep the password stored in RAM
 		memset(password, 0, strlen(password));

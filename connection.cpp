@@ -2,6 +2,9 @@
 
 #include <QTimer>
 
+namespace qimaptray
+{
+
 connection::connection(const char *host, const char *login,
 					   const char *password)
 	: imap_connection(host)
@@ -36,4 +39,6 @@ void connection::callback(unsigned int count)
 void connection::wait_message()
 {
 	imap_connection.wait();
+}
+
 }

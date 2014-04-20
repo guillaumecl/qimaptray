@@ -12,6 +12,8 @@
 #include <stdarg.h>
 #include <string.h>
 
+#include <poll.h>
+
 #include "status.h"
 
 #define TAG "%010d "
@@ -25,27 +27,60 @@ imap::imap(const char *host, bool verbose) :
 	logout_(false),
 	need_refresh_(false)
 {
-	/* TODO handle exceptions during the setup (destructor won't be called) */
-	BIO *sbio;
+	SSL *ssl;
+	int ret;
 	int port = 993;
-
+	/* TODO handle exceptions during the setup (destructor won't be called) */
 	/* Global system initialization*/
 	SSL_library_init();
 	SSL_load_error_strings();
 
-	ctx_ = SSL_CTX_new(SSLv23_method());
-#ifdef SSL_MODE_RELEASE_BUFFERS
-	SSL_CTX_set_mode(ctx_, SSL_MODE_RELEASE_BUFFERS);
-#endif
-	tcp_connect(host, port);
+	ERR_load_crypto_strings();
+	ERR_load_SSL_strings();
+	OpenSSL_add_all_algorithms();
 
-	connection_ = SSL_new(ctx_);
-	sbio = BIO_new_socket(sock_, BIO_NOCLOSE);
-	SSL_set_bio(connection_, sbio, sbio);
 
-	if(SSL_connect(connection_) <= 0)
+	ctx_ = SSL_CTX_new(SSLv23_client_method());
+
+	connection_ = BIO_new_ssl_connect(ctx_);
+	BIO_get_ssl(connection_, &ssl);
+
+	if (!ssl)
 	{
-		ssl_error("SSL connect error");
+		fprintf(stderr, "Cannot get a SSL object.");
+		return;
+	}
+
+	/* Don't want any retries */
+	SSL_set_mode(ssl, SSL_MODE_AUTO_RETRY);
+
+	BIO_set_conn_hostname(connection_, host);
+	BIO_set_conn_int_port(connection_, &port);
+
+	BIO_set_nbio(connection_, 1);
+
+	do
+	{
+		ret = BIO_do_connect(connection_);
+	} while (ret <= 0 && BIO_should_retry(connection_));
+
+	if (ret <= 0)
+	{
+		fprintf(stderr, "Error connecting to server: %d\n", ret);
+		ERR_print_errors_fp(stderr);
+		return;
+	}
+
+	do
+	{
+		ret = BIO_do_handshake(connection_);
+	} while (ret <= 0 && BIO_should_retry(connection_));
+
+	if (ret <= 0)
+	{
+		fprintf(stderr, "Error doing SS handshake: %d\n", ret);
+		ERR_print_errors_fp(stderr);
+		return;
 	}
 
 	/**

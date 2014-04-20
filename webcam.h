@@ -3,6 +3,11 @@
 
 #include <cstdlib>
 
+struct webcam;
+
+namespace qimaptray
+{
+
 class webcam
 {
 public:
@@ -13,11 +18,9 @@ public:
 	void unlight();
 
 private:
-	int fd;
-	bool lighted;
-
-	void   *map_start;
-	size_t map_length;
+	::webcam *controller_;
 };
+
+}
 
 #endif

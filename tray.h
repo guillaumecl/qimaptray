@@ -7,6 +7,9 @@
 
 class QSystemTrayIcon;
 
+namespace qimaptray
+{
+
 class tray: public QObject
 {
 	Q_OBJECT
@@ -22,7 +25,9 @@ private:
 
 	unsigned int known_unread_;
 
-	webcam webcam_;
+	qimaptray::webcam webcam_;
 };
+
+}
 
 #endif
