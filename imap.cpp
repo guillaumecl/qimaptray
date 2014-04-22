@@ -237,7 +237,9 @@ int imap::receive(status_callback callback)
 			if (not ignore_errors)
 				fprintf(stderr, "Lost connection. Trying to reconnect...\n");
 
-			return reset(ignore_errors);
+			ret = reset(ignore_errors);
+			if (ret <= 0)
+				continue;
 		}
 		ret = BIO_read(connection_, buffer, sizeof(buffer));
 		if (ret > 0 or not BIO_should_retry(connection_))
