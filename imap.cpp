@@ -28,7 +28,6 @@ imap::imap(const char *host, bool verbose) :
 	need_refresh_(false)
 {
 	SSL *ssl;
-	int ret;
 	int port = 993;
 	/* TODO handle exceptions during the setup (destructor won't be called) */
 	/* Global system initialization*/
@@ -59,6 +58,13 @@ imap::imap(const char *host, bool verbose) :
 
 	BIO_set_nbio(connection_, 1);
 
+	handshake(false);
+}
+
+int imap::handshake(bool ignore_errors)
+{
+	int ret;
+
 	do
 	{
 		ret = BIO_do_connect(connection_);
@@ -66,9 +72,12 @@ imap::imap(const char *host, bool verbose) :
 
 	if (ret <= 0)
 	{
-		fprintf(stderr, "Error connecting to server: %d\n", ret);
-		ERR_print_errors_fp(stderr);
-		return;
+		if (not ignore_errors)
+		{
+			fprintf(stderr, "Error connecting to server\n");
+			ERR_print_errors_fp(stderr);
+		}
+		return ret;
 	}
 
 	do
@@ -78,15 +87,18 @@ imap::imap(const char *host, bool verbose) :
 
 	if (ret <= 0)
 	{
-		fprintf(stderr, "Error doing SS handshake: %d\n", ret);
-		ERR_print_errors_fp(stderr);
-		return;
+		if (not ignore_errors)
+		{
+			fprintf(stderr, "Error doing SS handshake\n");
+			ERR_print_errors_fp(stderr);
+		}
+		return ret;
 	}
 
 	/**
 	 * Receive the initial dialog from the server.
 	 */
-	receive();
+	return receive();
 }
 
 imap::~imap()
@@ -179,6 +191,33 @@ void imap::ssl_error(const char* string)
 	}
 }
 
+int imap::reset(bool ignore_errors)
+{
+	int ret;
+	BIO_reset(connection_);
+
+	ret = handshake(ignore_errors);
+	if (ret <= 0)
+		return ret;
+
+	bool was_idle = idle_;
+
+	idle_ = false;
+	if (not user_.empty())
+	{
+		fprintf(stderr, "Connected. Retrying to login.\n");
+		login(user_.c_str(), password_.c_str());
+
+		select("INBOX");
+
+		if (was_idle)
+		{
+			idle();
+		}
+	}
+	return 0;
+}
+
 int imap::receive(status_callback callback)
 {
 	char buffer[2048];
@@ -191,23 +230,14 @@ int imap::receive(status_callback callback)
 	{
 		BIO_get_fd(connection_, &p.fd);
 		p.events = POLLIN | POLLRDHUP | POLLNVAL;
-		fprintf(stderr, "Polling %d\n", p.fd);
-		ret = poll(&p, 1, 10*60*1000);
+		ret = poll(&p, 1, 2*60*1000);
 		if (ret == 0)
 		{
-			fprintf(stderr, "Lost connection : %d\n", ret);
-			BIO *bio = BIO_new_ssl_connect(ctx_);
-			int port = BIO_get_conn_int_port(connection_);
+			bool ignore_errors = (p.fd < 0);
+			if (not ignore_errors)
+				fprintf(stderr, "Lost connection. Trying to reconnect...\n");
 
-			BIO_set_conn_hostname(bio, BIO_get_conn_hostname(connection_));
-			BIO_set_conn_int_port(bio, &port);
-
-			BIO_set_nbio(bio, 1);
-
-			std::swap(bio, connection_);
-			BIO_free_all(bio);
-
-			return ret;
+			return reset(ignore_errors);
 		}
 		ret = BIO_read(connection_, buffer, sizeof(buffer));
 		if (ret > 0 or not BIO_should_retry(connection_))
@@ -261,6 +291,12 @@ bool imap::login(const char *login, const char *password)
 {
 	bool success = true;
 	sendf("LOGIN %s %s", login, password);
+
+	if (user_.empty())
+	{
+		user_ = login;
+		password_ = password;
+	}
 
 	receive([&success] (const status& s)
 			{

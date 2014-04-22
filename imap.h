@@ -3,6 +3,7 @@
 
 #include <openssl/ssl.h>
 #include <functional>
+#include <string>
 
 namespace imappp
 {
@@ -123,6 +124,17 @@ private:
 		__attribute__((format(printf, 3, 0)));
 
 	/**
+	 * Restart the connection and the handshake. Returns 0 on success.
+	 */
+	int handshake(bool ignore_errors);
+
+	/**
+	 * Reset the connection and try to make it into a workable state.
+	 * Returns 0 on success.
+	 */
+	int reset(bool ignore_errors);
+
+	/**
 	 * Printf based send to server.
 	 */
 	void sendf(const char *format, ...)
@@ -200,6 +212,13 @@ private:
 	 * If set, this is called when the number of messages change.
 	 */
 	receive_message_callback message_callback_;
+
+	/**
+	 * This is used to reconnect to the host if needed.
+	 * Yes, this sucks. I need to find another way to reconnect.
+	 */
+	std::string user_;
+	std::string password_;
 };
 
 }
