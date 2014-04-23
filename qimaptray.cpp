@@ -46,7 +46,10 @@ int main(int argc, char **argv)
 
 		c.moveToThread(&thread);
 		QObject::connect(&c, SIGNAL(new_unread_count(unsigned int, unsigned int)),
-						 &t, SLOT(unread_messages(unsigned int, unsigned int)));
+				 &t, SLOT(unread_messages(unsigned int, unsigned int)));
+		QObject::connect(&c, SIGNAL(connected()), &t, SLOT(connected()));
+		QObject::connect(&c, SIGNAL(disconnected()), &t, SLOT(disconnected()));
+		QObject::connect(&c, SIGNAL(cannot_login()), &t, SLOT(cannot_login()));
 
 		thread.start();
 		return app.exec();

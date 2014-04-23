@@ -14,6 +14,7 @@ public:
 	webcam();
 	~webcam();
 
+	void set_light(bool lighted);
 	void light();
 	void unlight();
 

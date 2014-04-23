@@ -8,14 +8,28 @@ namespace qimaptray
 connection::connection(const char *host, const char *login,
 					   const char *password)
 	: imap_connection(host)
+	, login_(login)
+	, password_(password)
 {
 	imap_connection.set_message_callback(
 		std::bind(&connection::callback, this, std::placeholders::_1));
-	if (not imap_connection.login(login, password))
-	{
-		// todo error or something.
-	}
-	QTimer::singleShot(0, this, SLOT(start()));
+	imap_connection.set_connection_callback(
+		std::bind(&connection::connection_callback, this, std::placeholders::_1));
+
+	QTimer::singleShot(0, this, SLOT(try_connect()));
+}
+
+void connection::try_connect()
+{
+	imap_connection.connect();
+}
+
+void connection::login()
+{
+	if (imap_connection.login(login_.c_str(), password_.c_str()))
+		QTimer::singleShot(0, this, SLOT(start()));
+	else
+		emit cannot_login();
 }
 
 void connection::start()
@@ -33,7 +47,21 @@ void connection::start()
 void connection::callback(unsigned int count)
 {
 	emit new_unread_count(count,
-						  imap_connection.message_count());
+			      imap_connection.message_count());
+}
+
+void connection::connection_callback(bool is_connected)
+{
+	if (is_connected)
+	{
+		login();
+		emit connected();
+	}
+	else
+	{
+		emit disconnected();
+		QTimer::singleShot(0, this, SLOT(try_connect()));
+	}
 }
 
 void connection::wait_message()

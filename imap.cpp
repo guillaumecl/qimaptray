@@ -57,8 +57,11 @@ imap::imap(const char *host, bool verbose) :
 	BIO_set_conn_int_port(connection_, &port);
 
 	BIO_set_nbio(connection_, 1);
+}
 
-	handshake(false);
+bool imap::connect()
+{
+	return handshake(false) >= 0;
 }
 
 int imap::handshake(bool ignore_errors)
@@ -94,6 +97,9 @@ int imap::handshake(bool ignore_errors)
 		}
 		return ret;
 	}
+
+	if (connection_callback_)
+		connection_callback_(true);
 
 	/**
 	 * Receive the initial dialog from the server.
@@ -191,30 +197,13 @@ void imap::ssl_error(const char* string)
 	}
 }
 
-int imap::reset(bool ignore_errors)
+int imap::reset(bool)
 {
-	int ret;
+	if (connection_callback_)
+		connection_callback_(false);
+	idle_ = false;
 	BIO_reset(connection_);
 
-	ret = handshake(ignore_errors);
-	if (ret <= 0)
-		return ret;
-
-	bool was_idle = idle_;
-
-	idle_ = false;
-	if (not user_.empty())
-	{
-		fprintf(stderr, "Connected. Retrying to login.\n");
-		login(user_.c_str(), password_.c_str());
-
-		select("INBOX");
-
-		if (was_idle)
-		{
-			idle();
-		}
-	}
 	return 0;
 }
 
@@ -230,7 +219,7 @@ int imap::receive(status_callback callback)
 	{
 		BIO_get_fd(connection_, &p.fd);
 		p.events = POLLIN | POLLRDHUP | POLLNVAL;
-		ret = poll(&p, 1, 2*60*1000);
+		ret = poll(&p, 1, p.fd > 0 ? 10*60*1000 : 60*1000);
 		if (ret == 0)
 		{
 			bool ignore_errors = (p.fd < 0);
@@ -239,7 +228,7 @@ int imap::receive(status_callback callback)
 
 			ret = reset(ignore_errors);
 			if (ret <= 0)
-				continue;
+				return ret;
 		}
 		ret = BIO_read(connection_, buffer, sizeof(buffer));
 		if (ret > 0 or not BIO_should_retry(connection_))
@@ -293,12 +282,6 @@ bool imap::login(const char *login, const char *password)
 {
 	bool success = true;
 	sendf("LOGIN %s %s", login, password);
-
-	if (user_.empty())
-	{
-		user_ = login;
-		password_ = password;
-	}
 
 	receive([&success] (const status& s)
 			{
@@ -389,4 +372,9 @@ unsigned int imap::message_count() const
 void imap::set_message_callback(receive_message_callback callback)
 {
 	message_callback_ = callback;
+}
+
+void imap::set_connection_callback(connection_callback callback)
+{
+	connection_callback_ = callback;
 }

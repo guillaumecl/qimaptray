@@ -28,6 +28,14 @@ webcam::~webcam()
 		webcam_free(controller_);
 }
 
+void webcam::set_light(bool lighted)
+{
+	if (lighted)
+		light();
+	else
+		unlight();
+}
+
 void webcam::light()
 {
 	if (controller_)

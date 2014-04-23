@@ -20,6 +20,8 @@ public:
 
 	typedef std::function<void(unsigned int)> receive_message_callback;
 
+	typedef std::function<void(bool)> connection_callback;
+
 	/**
 	 * Instantiate an IMAP SSL connection to host.
 	 * @param host the host to connect to.
@@ -51,6 +53,11 @@ public:
 	 */
 	imap& operator=(imap&&) = delete;
 
+	/**
+	 * Try to connect to the server.
+	 * @return true in case of success
+	 */
+	bool connect();
 
 	/**
 	 * Log on the server.
@@ -101,6 +108,11 @@ public:
 	 * Sets the method to call when receiving the message read count.
 	 */
 	void set_message_callback(receive_message_callback callback);
+
+	/**
+	 * Sets the method to call when receiving the message read count.
+	 */
+	void set_connection_callback(connection_callback callback);
 
 private:
 	/**
@@ -214,11 +226,9 @@ private:
 	receive_message_callback message_callback_;
 
 	/**
-	 * This is used to reconnect to the host if needed.
-	 * Yes, this sucks. I need to find another way to reconnect.
+	 * If set, this is called when the connection or disconnection status changes.
 	 */
-	std::string user_;
-	std::string password_;
+	connection_callback connection_callback_;
 };
 
 }

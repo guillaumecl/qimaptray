@@ -9,40 +9,65 @@ namespace qimaptray
 tray::tray() :
 	icon_(new QSystemTrayIcon(this)),
 	base_icon_(":/icons/mail"),
-	known_unread_(0)
+	known_unread_(0),
+	connected_(false)
 {
 	icon_->setToolTip("Unread mails");
-	icon_->setIcon(base_icon_);
+	repaint();
 	icon_->setVisible(true);
+}
+
+void tray::repaint()
+{
+	QPixmap pixmap;
+	QSize size(16, 16);
+	if (not connected_)
+		pixmap = base_icon_.pixmap(size, QIcon::Disabled);
+	else
+		pixmap = base_icon_.pixmap(size);
+
+	webcam_.set_light(connected_ and known_unread_ > 0);
+
+	if (known_unread_ > 0)
+	{
+		QPainter painter(&pixmap);
+
+		painter.setPen(Qt::blue);
+
+		QFont font = painter.font();
+		font.setBold(true);
+		painter.setFont(font);
+
+		painter.drawText(pixmap.rect(),
+				 Qt::AlignCenter,
+				 QString::number(known_unread_));
+	}
+	icon_->setIcon(QIcon(pixmap));
 }
 
 void tray::unread_messages(unsigned int unread, unsigned int /*total*/)
 {
-	if (unread > 0)
-	{
-		webcam_.light();
-		QPixmap pixmap = base_icon_.pixmap(QSize(16, 16));
-		{
-			QPainter painter(&pixmap);
-
-			painter.setPen(Qt::blue);
-
-			QFont font = painter.font();
-			font.setBold(true);
-			painter.setFont(font);
-
-			painter.drawText(pixmap.rect(),
-							 Qt::AlignCenter,
-							 QString::number(unread));
-		}
-		icon_->setIcon(QIcon(pixmap));
-	}
-	else
-	{
-		webcam_.unlight();
-		icon_->setIcon(base_icon_);
-	}
 	known_unread_ = unread;
+	repaint();
+}
+
+
+void tray::connected()
+{
+	connected_ = true;
+	repaint();
+}
+
+void tray::disconnected()
+{
+	webcam_.unlight();
+	connected_ = false;
+	repaint();
+}
+
+void tray::cannot_login()
+{
+	icon_->showMessage("qimaptray", "Cannot login to the server.");
 }
 
 }

@@ -18,14 +18,19 @@ public:
 
 public slots:
 	void unread_messages(unsigned int unread, unsigned int total);
+	void connected();
+	void disconnected();
+	void cannot_login();
 
 private:
+	void repaint();
 	QSystemTrayIcon *icon_;
 	QIcon base_icon_;
 
 	unsigned int known_unread_;
 
 	qimaptray::webcam webcam_;
+	bool connected_;
 };
 
 }
