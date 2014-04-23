@@ -229,6 +229,8 @@ private:
 	 * If set, this is called when the connection or disconnection status changes.
 	 */
 	connection_callback connection_callback_;
+
+	int suspend_fd_;
 };
 
 }

@@ -14,6 +14,8 @@
 
 #include <poll.h>
 
+#include <sys/inotify.h>
+
 #include "status.h"
 
 #define TAG "%010d "
@@ -57,6 +59,12 @@ imap::imap(const char *host, bool verbose) :
 	BIO_set_conn_int_port(connection_, &port);
 
 	BIO_set_nbio(connection_, 1);
+
+	suspend_fd_ = inotify_init();
+	if (suspend_fd_ > 0) {
+		inotify_add_watch(suspend_fd_, "/sys/power/state", IN_MODIFY);
+		lseek(suspend_fd_, 0, SEEK_END);
+	}
 }
 
 bool imap::connect()
@@ -114,6 +122,9 @@ imap::~imap()
 	*/
 	BIO_free_all(connection_);
 	SSL_CTX_free(ctx_);
+
+	if (suspend_fd_ > 0)
+		close(suspend_fd_);
 }
 
 void imap::logout()
@@ -212,17 +223,36 @@ int imap::receive(status_callback callback)
 	char buffer[2048];
 
 	int ret;
+	int timeout;
 
-	struct pollfd p;
+	struct pollfd polls[2];
+
+	polls[0].events = POLLIN | POLLRDHUP | POLLNVAL;
+
+	polls[1].events = POLLIN;
+	polls[1].fd = suspend_fd_;
 
 	while(true)
 	{
-		BIO_get_fd(connection_, &p.fd);
-		p.events = POLLIN | POLLRDHUP | POLLNVAL;
-		ret = poll(&p, 1, p.fd > 0 ? 10*60*1000 : 60*1000);
-		if (ret == 0)
+		BIO_get_fd(connection_, &polls[0].fd);
+		if (polls[1].revents)
+			timeout = 5 * 1000;
+		else if (polls[0].fd > 0)
+			timeout = 10 * 60 * 1000;
+		else
+			timeout = 60 * 1000;
+
+		ret = poll(polls, 2, timeout);
+		if (polls[1].revents)
 		{
-			bool ignore_errors = (p.fd < 0);
+			char event_buf[1024];
+			read(suspend_fd_, event_buf, sizeof(event_buf));
+			read(suspend_fd_, event_buf, sizeof(event_buf));
+			continue;
+		}
+		if (polls[0].revents == 0)
+		{
+			bool ignore_errors = (polls[0].fd < 0);
 			if (not ignore_errors)
 				fprintf(stderr, "Lost connection. Trying to reconnect...\n");
 
@@ -230,6 +260,7 @@ int imap::receive(status_callback callback)
 			if (ret <= 0)
 				return ret;
 		}
+
 		ret = BIO_read(connection_, buffer, sizeof(buffer));
 		if (ret > 0 or not BIO_should_retry(connection_))
 		{
