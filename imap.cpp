@@ -232,6 +232,8 @@ int imap::receive(status_callback callback)
 	polls[1].events = POLLIN;
 	polls[1].fd = suspend_fd_;
 
+	polls[0].revents = 0;
+	polls[1].revents = 0;
 	while(true)
 	{
 		BIO_get_fd(connection_, &polls[0].fd);
@@ -266,6 +268,8 @@ int imap::receive(status_callback callback)
 		{
 			break;
 		}
+		polls[0].revents = 0;
+		polls[1].revents = 0;
 	}
 
 	if (ret <= 0)
