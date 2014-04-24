@@ -106,13 +106,15 @@ int imap::handshake(bool ignore_errors)
 		return ret;
 	}
 
-	if (connection_callback_)
-		connection_callback_(true);
-
 	/**
 	 * Receive the initial dialog from the server.
 	 */
-	return receive();
+	ret = receive();
+
+	if (ret >= 0 and connection_callback_)
+		connection_callback_(true);
+
+	return ret;
 }
 
 imap::~imap()
