@@ -6,6 +6,7 @@
 #include "webcam.h"
 
 class QSystemTrayIcon;
+class QMenu;
 
 namespace qimaptray
 {
@@ -15,6 +16,7 @@ class tray: public QObject
 	Q_OBJECT
 public:
 	tray();
+	~tray();
 
 public slots:
 	void unread_messages(unsigned int unread, unsigned int total);
@@ -31,6 +33,8 @@ private:
 
 	qimaptray::webcam webcam_;
 	bool connected_;
+
+	QMenu *context_menu_;
 };
 
 }

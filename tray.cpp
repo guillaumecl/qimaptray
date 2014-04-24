@@ -2,6 +2,8 @@
 
 #include <QSystemTrayIcon>
 #include <QPainter>
+#include <QMenu>
+#include <QApplication>
 
 namespace qimaptray
 {
@@ -15,7 +17,18 @@ tray::tray() :
 	icon_->setToolTip("Unread mails");
 	repaint();
 	icon_->setVisible(true);
+
+	context_menu_ = new QMenu;
+
+	context_menu_->addAction("Quit", qApp, SLOT(quit()));
+	icon_->setContextMenu(context_menu_);
 }
+
+tray::~tray()
+{
+	context_menu_->deleteLater();
+}
+
 
 void tray::repaint()
 {
