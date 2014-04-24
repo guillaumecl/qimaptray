@@ -305,10 +305,10 @@ int imap::receive(status_callback callback)
 			stop_idle();
 		}
 		sendf("SEARCH UNSEEN");
+		receive(callback);
 		if (was_idle)
 		{
-			sendf("IDLE");
-			idle_ = true;
+			idle();
 		}
 	}
 
