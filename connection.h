@@ -14,6 +14,7 @@ class connection: public QObject
 public:
 	connection(const char *host, const char *login,
 			   const char *password);
+	void stop();
 
 signals:
 	void new_unread_count(unsigned int unread_count, unsigned int total);

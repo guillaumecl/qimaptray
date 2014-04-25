@@ -52,7 +52,14 @@ int main(int argc, char **argv)
 		QObject::connect(&c, SIGNAL(cannot_login()), &t, SLOT(cannot_login()));
 
 		thread.start();
-		return app.exec();
+		int ret = app.exec();
+
+		c.stop();
+
+		thread.exit();
+		thread.wait();
+
+		return ret;
 	}
 	catch(const std::exception&e)
 	{

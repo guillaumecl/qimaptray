@@ -69,4 +69,9 @@ void connection::wait_message()
 	imap_connection.wait();
 }
 
+void connection::stop()
+{
+	imap_connection.stop_reception();
+}
+
 }

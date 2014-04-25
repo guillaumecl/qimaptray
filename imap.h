@@ -114,6 +114,7 @@ public:
 	 */
 	void set_connection_callback(connection_callback callback);
 
+	void stop_reception();
 private:
 	/**
 	 * Logs errors.
@@ -230,7 +231,20 @@ private:
 	 */
 	connection_callback connection_callback_;
 
+	/**
+	 * Some file that can be monitored to detect suspend events.
+	 */
 	int suspend_fd_;
+
+	/**
+	 * A file descriptor used to detect stop events.
+	 */
+	int stop_fd_;
+
+	/**
+	 * Write to this pipe to stop the receive loop.
+	 */
+	int stop_pipe_fd_;
 };
 
 }

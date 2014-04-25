@@ -65,11 +65,25 @@ imap::imap(const char *host, bool verbose) :
 		inotify_add_watch(suspend_fd_, "/sys/power/state", IN_MODIFY);
 		lseek(suspend_fd_, 0, SEEK_END);
 	}
+
+	int pipes[2];
+
+	if (pipe(pipes) == -1) {
+		perror("pipe");
+	}
+	stop_fd_ = pipes[0];
+	stop_pipe_fd_ = pipes[1];
 }
 
 bool imap::connect()
 {
 	return handshake(false) >= 0;
+}
+
+void imap::stop_reception()
+{
+	if (write(stop_pipe_fd_, "buf", 1) <= 0)
+		perror("write");
 }
 
 int imap::handshake(bool ignore_errors)
@@ -227,15 +241,19 @@ int imap::receive(status_callback callback)
 	int ret;
 	int timeout;
 
-	struct pollfd polls[2];
+	struct pollfd polls[3];
 
 	polls[0].events = POLLIN | POLLRDHUP | POLLNVAL;
 
 	polls[1].events = POLLIN;
 	polls[1].fd = suspend_fd_;
 
+	polls[2].events = POLLIN;
+	polls[2].fd = stop_fd_;
+
 	polls[0].revents = 0;
 	polls[1].revents = 0;
+	polls[2].revents = 0;
 	while(true)
 	{
 		BIO_get_fd(connection_, &polls[0].fd);
@@ -246,7 +264,11 @@ int imap::receive(status_callback callback)
 		else
 			timeout = 60 * 1000;
 
-		ret = poll(polls, 2, timeout);
+		ret = poll(polls, sizeof(polls) / sizeof(struct pollfd), timeout);
+		if (polls[2].revents)
+		{
+			return -1;
+		}
 		if (polls[1].revents)
 		{
 			char event_buf[1024];
