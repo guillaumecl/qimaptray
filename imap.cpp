@@ -162,49 +162,46 @@ void imap::logout()
 	receive();
 }
 
-int imap::try_sendf(int length, const char *format, va_list ap)
+int imap::vsendf(const char *format, va_list ap)
 {
-	char buffer[length];
+	char *buffer;
+	int size = 100;
 	int ret;
 
-	int l = sprintf(buffer, TAG, tag_);
+	int l;
+	int len;
 
-	int len = vsnprintf(buffer + l, sizeof(buffer) - l, format, ap);
-	len += l;
-	if (len + 2 > length)
+	buffer = (char*)alloca(size);
+print:
+	l = sprintf(buffer, TAG, tag_);
+
+	len = vsnprintf(buffer + l, sizeof(buffer) - l, format, ap);
+	if (len + l + 2 >= size)
 	{
-		return len + 3;
+		buffer = (char*)alloca(len + l + 1 - size);
+		size = len + l + 3;
+		goto print;
 	}
-	else
+	if (verbose_)
 	{
-		if (verbose_)
-		{
-			printf("%s\n", buffer);
-		}
-		buffer[len] = '\r';
-		buffer[len+1] = '\n';
-		buffer[len+2] = 0;
-		do
-		{
-			ret = BIO_write(connection_, buffer, len+2);
-		} while (ret < len+2 and BIO_should_retry(connection_));
-		return 0;
+		printf("%s\n", buffer);
 	}
+	buffer[len+l] = '\r';
+	buffer[len+l+1] = '\n';
+	buffer[len+l+2] = 0;
+	do
+	{
+		ret = BIO_write(connection_, buffer, len+2);
+	} while (ret < len+2 and BIO_should_retry(connection_));
+	return 0;
 }
 
 void imap::sendf(const char *format, ...)
 {
 	va_list ap;
-	unsigned int len;
 
 	va_start(ap, format);
-
-	len = try_sendf(1024, format, ap);
-	if (len > 0)
-	{
-		fprintf(stderr, "warning: send buffer too small: needed:%d.\n", len);
-		try_sendf(len, format, ap);
-	}
+	vsendf(format, ap);
 	tag_++;
 
 	va_end(ap);
