@@ -141,6 +141,12 @@ imap::~imap()
 
 	if (suspend_fd_ > 0)
 		close(suspend_fd_);
+
+	if (stop_pipe_fd_ > 0)
+		close(stop_pipe_fd_);
+
+	if (stop_fd_ > 0)
+		close(stop_fd_);
 }
 
 void imap::logout()
