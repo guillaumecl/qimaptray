@@ -133,8 +133,8 @@ private:
 	 *
 	 * If success, return 0. If failed, return the needed number of bytes.
 	 */
-	int vsendf(const char *format, va_list ap)
-		__attribute__((format(printf, 2, 0)));
+	int try_sendf(int len, const char *format, va_list ap)
+		__attribute__((format(printf, 3, 0)));
 
 	/**
 	 * Restart the connection and the handshake. Returns 0 on success.
