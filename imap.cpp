@@ -229,9 +229,7 @@ int imap::reset(bool)
 	if (connection_callback_)
 		connection_callback_(false);
 	idle_ = false;
-	BIO_reset(connection_);
-
-	return 0;
+	return BIO_reset(connection_);
 }
 
 int imap::receive(status_callback callback)
