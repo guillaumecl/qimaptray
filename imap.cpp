@@ -343,17 +343,27 @@ int imap::receive(status_callback callback)
 
 bool imap::login(const char *login, const char *password)
 {
-	bool success = true;
+	bool success = true, cont = true;
+	unsigned int login_tag = tag_;
+
 	sendf("LOGIN %s %s", login, password);
 
-	receive([&success] (const status& s)
+	while (cont)
+	{
+		int ret = receive([&] (const status& s)
 			{
-				if (s.response() != ok)
+				if (s.tag() == login_tag)
 				{
-					success = false;
+					cont = false;
+					success = s.response() == ok;
+					return true;
 				}
-				return true;
+				return false;
 			});
+
+		if (ret <= 0)
+			return ret;
+	}
 	return success;
 }
 
