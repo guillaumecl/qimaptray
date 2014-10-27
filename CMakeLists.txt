@@ -8,6 +8,7 @@ find_package(OpenSSL REQUIRED)
 find_package(Qt4 REQUIRED)
 
 option(WEBCAM "Compile using webcam_led" ON)
+option(LIBNL "Compile with libnl support to detect link down events" ON)
 
 include(${QT_USE_FILE})
 add_definitions(${QT_DEFINITIONS})
@@ -57,6 +58,10 @@ else(WEBCAM)
   set(FILES ${FILES} webcam_dummy.cpp)
 endif(WEBCAM)
 
+if (LIBNL)
+  set(LIBS ${LIBS} nl-route-3)
+  add_definitions(-DENABLE_LIBNL)
+endif (LIBNL)
 
 add_executable(qimaptray
   ${FILES}
