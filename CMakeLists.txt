@@ -59,7 +59,9 @@ else(WEBCAM)
 endif(WEBCAM)
 
 if (LIBNL)
-  set(LIBS ${LIBS} nl-route-3)
+  pkg_check_modules(NL REQUIRED libnl-3.0)
+  include_directories(${NL_INCLUDE_DIRS})
+  set(LIBS ${LIBS} ${NL_LIBRARIES})
   add_definitions(-DENABLE_LIBNL)
 endif (LIBNL)
 
