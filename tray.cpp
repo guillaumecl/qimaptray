@@ -21,6 +21,8 @@ tray::tray() :
 	context_menu_ = new QMenu;
 
 	context_menu_->addAction("Quit", qApp, SLOT(quit()));
+	context_menu_->addAction("Reconnect", this, SIGNAL(reconnect()));
+
 	icon_->setContextMenu(context_menu_);
 }
 

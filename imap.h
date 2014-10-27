@@ -115,6 +115,13 @@ public:
 	void set_connection_callback(connection_callback callback);
 
 	void stop_reception();
+
+	/**
+	 * Reset the connection and try to make it into a workable state.
+	 * Returns 0 on success.
+	 */
+	int reset(bool ignore_errors);
+
 private:
 	/**
 	 * Logs errors.
@@ -140,12 +147,6 @@ private:
 	 * Restart the connection and the handshake. Returns 0 on success.
 	 */
 	int handshake(bool ignore_errors);
-
-	/**
-	 * Reset the connection and try to make it into a workable state.
-	 * Returns 0 on success.
-	 */
-	int reset(bool ignore_errors);
 
 	/**
 	 * Printf based send to server.

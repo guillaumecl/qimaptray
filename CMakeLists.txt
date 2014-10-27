@@ -16,6 +16,7 @@ add_definitions(${QT_DEFINITIONS})
 QT4_WRAP_CPP(QIMAPTRAY_HEADERS_MOC
   connection.h
   tray.h
+  waker.h
 )
 
 QT4_WRAP_UI(QIMAPTRAY_FORMS_HEADERS
@@ -36,6 +37,7 @@ set(FILES
   qimaptray.cpp
   connection.cpp
   tray.cpp
+  waker.cpp
   ${QIMAPTRAY_HEADERS_MOC}
   ${QIMAPTRAY_FORMS_HEADERS}
   ${QIMAPTRAY_RESOURCES}

@@ -24,6 +24,9 @@ public slots:
 	void disconnected();
 	void cannot_login();
 
+signals:
+	void reconnect();
+
 private:
 	void repaint();
 	QSystemTrayIcon *icon_;

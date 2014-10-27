@@ -3,6 +3,7 @@
 
 #include "connection.h"
 #include "tray.h"
+#include "waker.h"
 
 #include <QApplication>
 #include <QThread>
@@ -40,6 +41,7 @@ int main(int argc, char **argv)
 
 		qimaptray::tray t;
 		qimaptray::connection c(host, user, password);
+		qimaptray::waker waker(c);
 
 		// don't keep the password stored in RAM
 		memset(password, 0, strlen(password));
@@ -50,6 +52,7 @@ int main(int argc, char **argv)
 		QObject::connect(&c, SIGNAL(connected()), &t, SLOT(connected()));
 		QObject::connect(&c, SIGNAL(disconnected()), &t, SLOT(disconnected()));
 		QObject::connect(&c, SIGNAL(cannot_login()), &t, SLOT(cannot_login()));
+		QObject::connect(&t, SIGNAL(reconnect()), &waker, SLOT(wake()));
 
 		thread.start();
 		int ret = app.exec();

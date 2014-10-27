@@ -271,6 +271,8 @@ int imap::receive(status_callback callback)
 		ret = poll(polls, sizeof(polls) / sizeof(struct pollfd), timeout);
 		if (polls[2].revents)
 		{
+			char stop_buf[10];
+			read(stop_fd_, stop_buf, sizeof(stop_buf));
 			return -1;
 		}
 		if (polls[1].revents)
