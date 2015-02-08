@@ -276,8 +276,8 @@ int imap::receive(status_callback callback)
 		if (polls[1].revents)
 		{
 			char event_buf[1024];
-			read(suspend_fd_, event_buf, sizeof(event_buf));
-			read(suspend_fd_, event_buf, sizeof(event_buf));
+			ret = read(suspend_fd_, event_buf, sizeof(event_buf));
+			ret = read(suspend_fd_, event_buf, sizeof(event_buf));
 			continue;
 		}
 		if (polls[0].revents == 0)

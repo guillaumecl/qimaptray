@@ -22,7 +22,8 @@ int main(int argc, char **argv)
 			host = (char*)alloca(256);
 			user = (char*)alloca(256);
 			password = (char*)alloca(256);
-			fscanf(stdin, "%255s %255s %255s", host, user, password);
+			if (fscanf(stdin, "%255s %255s %255s", host, user, password) != 3)
+				return 1;
 		}
 		else if (argc < 4)
 		{
