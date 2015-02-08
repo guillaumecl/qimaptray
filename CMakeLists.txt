@@ -7,8 +7,8 @@ SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x -Wall -Wextra -Werror")
 find_package(OpenSSL REQUIRED)
 find_package(Qt4 REQUIRED)
 
-option(WEBCAM "Compile using webcam_led" ON)
-option(LIBNL "Compile with libnl support to detect link down events" ON)
+option(ENABLE_WEBCAM "Compile using webcam_led" ON)
+option(ENABLE_LIBNL "Compile with libnl support to detect link down events" ON)
 
 include(${QT_USE_FILE})
 add_definitions(${QT_DEFINITIONS})
@@ -49,24 +49,26 @@ set(LIBS
 	 ${QT_LIBRARIES}
 )
 
-if (WEBCAM)
+if (ENABLE_WEBCAM)
   include_directories(".")
   link_directories(${CMAKE_SOURCE_DIR}/webcam_led)
   set(FILES ${FILES} webcam.cpp)
   set(LIBS ${LIBS} webcam_led v4l2)
-else(WEBCAM)
+else(ENABLE_WEBCAM)
   set(FILES ${FILES} webcam_dummy.cpp)
-endif(WEBCAM)
+endif(ENABLE_WEBCAM)
 
-if (LIBNL)
+if (ENABLE_LIBNL)
   pkg_check_modules(NL REQUIRED libnl-3.0)
   include_directories(${NL_INCLUDE_DIRS})
   set(LIBS ${LIBS} ${NL_LIBRARIES})
   add_definitions(-DENABLE_LIBNL)
-endif (LIBNL)
+endif (ENABLE_LIBNL)
 
 add_executable(qimaptray
   ${FILES}
 )
 
 target_link_libraries(qimaptray ${LIBS})
+
+install(TARGETS qimaptray DESTINATION bin)
