@@ -50,8 +50,6 @@ set(LIBS
 )
 
 if (ENABLE_WEBCAM)
-  include_directories(".")
-  link_directories(${CMAKE_SOURCE_DIR}/webcam_led)
   set(FILES ${FILES} webcam.cpp)
   set(LIBS ${LIBS} webcam_led v4l2)
 else(ENABLE_WEBCAM)
@@ -72,3 +70,4 @@ add_executable(qimaptray
 target_link_libraries(qimaptray ${LIBS})
 
 install(TARGETS qimaptray DESTINATION bin)
+install(FILES qimaptray.man DESTINATION share/man/man1/qimaptray.1)

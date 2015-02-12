@@ -1,0 +1,37 @@
+.\" Manpage for qimaptray.
+.\" Contact gclement@baobob.org.in to correct errors or typos.
+.TH man 1 "12 Feb 2015" "1.0" "qimaptray man page"
+.SH NAME
+qimaptray \- Show a tray icon when receiving mail
+.SH SYNOPSIS
+qimaptray
+.SH DESCRIPTION
+qimaptray shows a tray icon when you receive mail from your imap
+server. It can also light a webcam if needed.
+.SH OPTIONS
+qimaptray takes input from stdin.
+
+The expected format is as follows:
+
+server login password
+
+.SH ENVIRONMENT VARIABLES
+The following environment variables can be used to tweak the behaviour of qimaptray:
+.TP
+.B VIDEO_DEVICE
+Choose another webcam to use (default: /dev/video0)
+.SH EXAMPLES
+Here is a small example to use GPG with qimaptray:
+
+.PP
+# Setup the password file
+
+echo test.com test@test.com password | gpg -e password.gpg
+
+# Launch qimaptray
+
+gpg --batch -d password.gpg | qimaptray
+.SH BUGS
+The list of bugs can be accessed at https://github.com/guillaumecl/qimaptray/issues
+.SH AUTHOR
+Guillaume Clement (gclement@baobob.org)
