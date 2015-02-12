@@ -70,4 +70,4 @@ add_executable(qimaptray
 target_link_libraries(qimaptray ${LIBS})
 
 install(TARGETS qimaptray DESTINATION bin)
-install(FILES qimaptray.man DESTINATION share/man/man1/qimaptray.1)
+install(FILES qimaptray.man DESTINATION share/man/man1 RENAME qimaptray.1)
